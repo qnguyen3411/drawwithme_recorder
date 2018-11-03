@@ -11,6 +11,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "compression": "^1.7.3",
+    "express": "^4.16.4",
+    "image-data-uri": "^2.0.0",
     "redis": "^2.8.0",
     "socket.io": "^2.1.1"
   }
