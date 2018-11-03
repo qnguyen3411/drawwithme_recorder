@@ -11,17 +11,23 @@ const redisClient = redis.createClient();
 redisClient.on("error", function (err) {
   console.log("Error " + err);
 });
-// const getAsync = promisify(redisClient.get).bind(redisClient);
 
+const cors = (req, res, next) => {
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  next()
+}
 
 const app = express();
 app.use(compression());
-app.use(express.static('public'))
+app.use(cors, express.static('public'))
 app.listen(1337);
 
 
+
+
 // app.get('/log/latest/:roomId', async (req, res) => {
-  
+
 //   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 //   res.setHeader('Access-Control-Allow-Origin', '*');
 

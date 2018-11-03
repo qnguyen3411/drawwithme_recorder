@@ -1,7 +1,7 @@
 const { promisify } = require('util');
 const fs = require('fs');
 const redis = require("redis")
-const ImageDataURI = require('image-data-uri');
+
 const server = require('http').createServer();
 server.listen(9000);
 
@@ -81,7 +81,7 @@ io.on('connection', function (client) {
   async function createNewWriteStream(roomId, batchNum) {
     try {
       const stream = await openWriteStream(roomId, batchNum);
-      stream.write('[{"rgba":[1,1,1,1], "size": 1, "x": [], "y": []}"');
+      stream.write('[{"rgba":[1,1,1,1], "size": 1, "x": [], "y": []}');
       return stream;
     } catch (err) {
       throw err;
@@ -106,6 +106,7 @@ io.on('connection', function (client) {
   function getFileName(roomId, batchNum) {
     return __dirname + `/public/logs/${roomId}_${batchNum}.txt`
   }
+
 
   client.on('snapShot', async function ({ roomId, data }) {
     fs.writeFile(
