@@ -104,12 +104,14 @@ io.on('connection', function (client) {
   }
 
   async function writeToLog(roomId, logStr) {
+    console.log("WRITING LOGSTR: ", logStr)
     const strokeCount = await getAsync(`${roomId}_strokeCount`);
     const batchNum = Math.floor(strokeCount / BATCH_SIZE);
 
     const fileName = getFileName(roomId, batchNum);
-    fs.writeFile(fileName, logStr, { flags: 'a', mode: 33279 }, (err) => {
+    fs.writeFile(fileName, logStr, { flag: 'a', mode: 33279 }, (err) => {
       if (err) throw err;
+      console.log("WRITE SUCCESSFUL")
     })
   }
 
