@@ -68,7 +68,7 @@ io.on('connection', function (client) {
   function unloadBuffers() {
     console.log("UNLOADING BUFFERS...")
     Object.entries(buffers).forEach(([roomId, buffer]) => {
-      if (!buffer) { return; }
+      if (buffer && buffer.length === 0) { return; }
       recordBuffer(roomId, buffer);
       buffers[roomId] = [];
     })
@@ -82,7 +82,6 @@ io.on('connection', function (client) {
         draw(ctx, strokeBuffer[i]);
         logStr += ',\n' + JSON.stringify(strokeBuffer[i])
       }
-      console.log("SNAPSHOTTING CTX, ", ctx)
       snapShot(roomId, ctx.canvas);
       writeToLog(roomId, logStr)
     } catch (err) {
@@ -121,6 +120,8 @@ io.on('connection', function (client) {
 
   function draw(ctx, stroke) {
     const cssString = `rgba(${stroke.rgba.join(',')})`;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
     if (stroke.x.length === 0) {
       ctx.lineWidth = 1;
       ctx.fillStyle = cssString;
@@ -133,9 +134,9 @@ io.on('connection', function (client) {
   }
 
   function drawPath(ctx, x, y) {
+    ctx.moveTo(x[0], x[0]);
     ctx.beginPath();
     const len = x.length;
-    ctx.moveTo(x[0], x[0]);
     for (let i = 1; i < len; i++) {
       ctx.lineTo(x[i], y[i]);
     }
@@ -165,12 +166,10 @@ io.on('connection', function (client) {
 
   async function initializeSnapshot(roomId) {
     const canvas = createCanvas(1820, 1024, 'png');
-    console.log("INITIALIZED CANVAS, ", canvas)
     await snapShot(roomId, canvas)
   }
 
   function snapShot(roomId, canvas) {
-    console.log("CREATING SNAPSHOT FROM CANVAS:", canvas)
     return new Promise((resolve, reject) => {
       const out = fs.createWriteStream(
         getSnapshotUrl(roomId),
