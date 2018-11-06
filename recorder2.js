@@ -50,11 +50,15 @@ app.post('/write/:roomId', async (req, res) => {
 })
 
 app.post('/snapshot/:roomId', async (req, res) => {
+  const { roomId } = req.params;
+
   recordBuffer(roomId, buffers[roomId])
   res.status(200).send("")
 })
 
 app.post('/end/:roomId', async (req, res) => {
+  const { roomId } = req.params;
+
   recordBuffer(roomId, buffers[roomId])
   setAsync(`${roomId}_status`, 'inactive');
 
