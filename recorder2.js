@@ -9,7 +9,6 @@ const app = express();
 
 app.use(bodyParser.json());
 app.listen(9000);
-console.log("PID: ", process.pid);
 
 const BATCH_SIZE = 100;
 
@@ -23,8 +22,6 @@ const setAsync = promisify(redisClient.set).bind(redisClient);
 const incrAsync = promisify(redisClient.incr).bind(redisClient);
 
 let buffers = {};
-
-
 
 app.post('/write/:roomId', async (req, res) => {
   const { data } = req.body;
@@ -44,6 +41,7 @@ app.post('/write/:roomId', async (req, res) => {
     }
 
     buffers[roomId].push(data);
+    console.log(buffers[roomId].length)
     incrAsync(`${roomId}_strokeCount`);
 
   } catch (err) {
@@ -71,9 +69,7 @@ app.post('/end/:roomId', async (req, res) => {
 setInterval(unloadBuffers, 20000);
 
 function unloadBuffers() {
-  console.log("UNLOADED")
   Object.entries(buffers).forEach(async ([roomId, buffer]) => {
-    console.log(buffers)
     if (!buffer || buffer.length === 0) { return; }
     await recordBuffer(roomId, buffer);
     while (buffer.length !== 0) {
@@ -100,7 +96,6 @@ async function recordBuffer(roomId, strokeBuffer) {
 
 async function getSnapshotCtx(roomId) {
   try {
-    console.log("TRYING TO LOAD IMAGE")
     const image = await loadImage(getSnapshotUrl(roomId));
     const canvas = createCanvas(1820, 1024, 'png');
     const ctx = canvas.getContext('2d');
@@ -113,7 +108,6 @@ async function getSnapshotCtx(roomId) {
 }
 
 async function writeToLog(roomId, logStr) {
-  console.log("WRITING LOGSTR: ", logStr)
   const strokeCount = await getAsync(`${roomId}_strokeCount`);
   const batchNum = Math.floor(strokeCount / BATCH_SIZE);
 
