@@ -26,6 +26,7 @@ let buffers = {};
 app.post('/write/:roomId', async (req, res) => {
   const { data } = req.body;
   const { roomId } = req.params;
+
   res.status(200).send("")
   try {
     if (buffers[roomId] === undefined) {
@@ -118,7 +119,6 @@ async function writeToLog(roomId, logStr) {
   const fileName = getFileName(roomId, batchNum);
   fs.writeFile(fileName, logStr, { flag: 'a', mode: 33279 }, (err) => {
     if (err) throw err;
-    console.log("WRITE SUCCESSFUL")
   })
 }
 
