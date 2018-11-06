@@ -1,13 +1,15 @@
-const { promisify } = require('util');
-const sharp = require('sharp');
 const express = require('express');
 const bodyParser = require('body-parser');
-const fs = require('fs');
-const redis = require("redis")
+const redis = require("redis");
+const morgan = require('morgan');
 const { createCanvas, loadImage } = require('canvas')
+const { promisify } = require('util');
+const sharp = require('sharp');
+const fs = require('fs');
 
 const app = express();
 
+app.use(morgan('tiny'))
 app.use(bodyParser.json());
 app.listen(9000);
 
