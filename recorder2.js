@@ -1,4 +1,5 @@
 const { promisify } = require('util');
+const sharp = require('sharp');
 const express = require('express');
 const bodyParser = require('body-parser');
 const fs = require('fs');
@@ -180,17 +181,30 @@ async function initializeSnapshot(roomId) {
 
 function snapShot(roomId, canvas) {
   return new Promise((resolve, reject) => {
+    const snapshotUrl = getSnapshotUrl(roomId)
     const out = fs.createWriteStream(
-      getSnapshotUrl(roomId),
+      snapshotUrl,
+      { mode: 33279, flag: 'w' }
+    )
+
+    const thumbOut = fs.createWriteStream(
+      getThumbUrl(roomId),
       { mode: 33279, flag: 'w' }
     )
     const stream = canvas.createPNGStream()
     stream.pipe(out)
-    out.on('finish', () => resolve());
+    out.on('finish', () => {
+      sharp(snapshotUrl).resize(160,90).pipe(thumbOut);
+      resolve();
+    });
     out.on('error', (err) => reject(err));
   })
 }
 
 function getSnapshotUrl(roomId) {
-  return __dirname + `/public/snapShots/${roomId}_snapshot.png`;
+  return __dirname + `/public/snapshots/${roomId}_snapshot.png`;
+}
+
+function getThumbUrl(roomId) {
+  return __dirname + `/public/thumbs/${roomId}_snapshot.png`;
 }

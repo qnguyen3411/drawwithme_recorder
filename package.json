@@ -19,6 +19,7 @@
     "express": "^4.16.4",
     "image-data-uri": "^2.0.0",
     "redis": "^2.8.0",
+    "sharp": "^0.21.0",
     "socket.io": "^2.1.1"
   }
 }
