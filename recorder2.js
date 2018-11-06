@@ -24,6 +24,7 @@ const incrAsync = promisify(redisClient.incr).bind(redisClient);
 
 let buffers = {};
 
+
 app.post('/write/:roomId', async (req, res) => {
   const { data } = req.body;
   const { roomId } = req.params;
@@ -191,10 +192,13 @@ function snapShot(roomId, canvas) {
       getThumbUrl(roomId),
       { mode: 33279, flag: 'w' }
     )
+    const thumbTransform = sharp().resize(160,90);
+
     const stream = canvas.createPNGStream()
+    stream.pipe(thumbTransform).pipe(thumbOut)
     stream.pipe(out)
     out.on('finish', () => {
-      sharp(snapshotUrl).resize(160,90).pipe(thumbOut);
+      // sharp(snapshotUrl).resize(160,90).pipe(thumbOut);
       resolve();
     });
     out.on('error', (err) => reject(err));
