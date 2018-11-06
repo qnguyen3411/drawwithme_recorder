@@ -44,7 +44,6 @@ app.post('/write/:roomId', async (req, res) => {
     }
 
     buffers[roomId].push(data);
-    console.log(buffers[roomId].length)
     incrAsync(`${roomId}_strokeCount`);
 
   } catch (err) {
@@ -198,7 +197,6 @@ function snapShot(roomId, canvas) {
     stream.pipe(thumbTransform).pipe(thumbOut)
     stream.pipe(out)
     out.on('finish', () => {
-      // sharp(snapshotUrl).resize(160,90).pipe(thumbOut);
       resolve();
     });
     out.on('error', (err) => reject(err));
