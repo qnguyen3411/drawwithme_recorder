@@ -1,7 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const redis = require("redis");
-const morgan = require('morgan');
+// const morgan = require('morgan');
 const { createCanvas, loadImage } = require('canvas')
 const { promisify } = require('util');
 const sharp = require('sharp');
@@ -9,17 +9,11 @@ const fs = require('fs');
 
 const app = express();
 
-app.use(morgan('tiny'))
+// app.use(morgan('tiny'))
 app.use(bodyParser.json());
 app.listen(9000, () => {
   console.log("LISTENING")
 });
-
-
-app.get('/test', (req, res) => {
-  res.send("HEY")
-})
-
 
 const BATCH_SIZE = 100;
 
@@ -33,7 +27,6 @@ const setAsync = promisify(redisClient.set).bind(redisClient);
 const incrAsync = promisify(redisClient.incr).bind(redisClient);
 
 let buffers = {};
-
 
 app.post('/write/:roomId', async function (req, res) {
   const { data } = req.body;
@@ -88,20 +81,15 @@ function unloadBuffers() {
   Object.entries(buffers).forEach(async ([roomId, buffer]) => {
     if (buffer.length === 0) { return; }
     await recordBuffer(roomId, buffer);
-    while (buffer.length !== 0) {
-      buffer.pop()
-    }
-    // buffer = [];
+    buffer = [];
   })
 }
 
 async function recordBuffer(roomId, strokeBuffer) {
   try {
     const ctx = await getSnapshotCtx(roomId);
-    // let logStr = "";
     const writeStream = await getLogWriteStream(roomId);
     for (let i = 0; i < strokeBuffer.length; i++) {
-      // TODO: no str append
       draw(ctx, strokeBuffer[i]);
       writeStream.write(',\n' + JSON.stringify(strokeBuffer[i]))
     }
@@ -130,7 +118,6 @@ async function getLogWriteStream(roomId) {
   const strokeCount = await getAsync(`${roomId}_strokeCount`);
   const batchNum = Math.floor(strokeCount / BATCH_SIZE);
   const fileName = getLogFileName(roomId, batchNum);
-  // TODO: write stream not appending
   const stream = fs.createWriteStream(fileName, { flags: 'a', mode: 33279 })
   while (!stream.writable) { }
   return stream;
