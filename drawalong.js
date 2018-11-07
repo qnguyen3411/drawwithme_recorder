@@ -1,4 +1,15 @@
 const { createCanvas } = require('canvas');
-const canvas = createCanvas(10, 10, 'png');
-const ctx = canvas.getContext('2d');
-console.log(canvas, ctx);
+
+function makeCanvas() {
+  console.log(process.memoryUsage());
+  let canvas = createCanvas(10, 10, 'png');
+  // console.log(canvas, ctx);
+  let ctx = canvas.getContext('2d');
+  canvas = null;
+  ctx = null;
+  // let x = 3;
+  // x = null;
+}
+setInterval(makeCanvas, 1000);
+
+// makeCanvas()

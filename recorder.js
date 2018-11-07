@@ -11,7 +11,15 @@ const app = express();
 
 app.use(morgan('tiny'))
 app.use(bodyParser.json());
-app.listen(9000);
+app.listen(9000, () => {
+  console.log("LISTENING")
+});
+
+
+app.get('/test', (req, res) => {
+  res.send("HEY")
+})
+
 
 const BATCH_SIZE = 100;
 
@@ -27,7 +35,7 @@ const incrAsync = promisify(redisClient.incr).bind(redisClient);
 let buffers = {};
 
 
-app.post('/write/:roomId', async (req, res) => {
+app.post('/write/:roomId', async function (req, res) {
   const { data } = req.body;
   const { roomId } = req.params;
 
@@ -73,30 +81,33 @@ app.post('/end/:roomId', async (req, res) => {
 
 })
 
-
+// INITIALIZE TIMER
 setInterval(unloadBuffers, 20000);
 
 function unloadBuffers() {
   Object.entries(buffers).forEach(async ([roomId, buffer]) => {
-    if (!buffer || buffer.length === 0) { return; }
+    if (buffer.length === 0) { return; }
     await recordBuffer(roomId, buffer);
     while (buffer.length !== 0) {
       buffer.pop()
     }
+    // buffer = [];
   })
 }
 
 async function recordBuffer(roomId, strokeBuffer) {
   try {
     const ctx = await getSnapshotCtx(roomId);
-    let logStr = "";
+    // let logStr = "";
+    const writeStream = await getLogWriteStream(roomId);
     for (let i = 0; i < strokeBuffer.length; i++) {
+      // TODO: no str append
       draw(ctx, strokeBuffer[i]);
-      logStr += ',\n' + JSON.stringify(strokeBuffer[i])
+      writeStream.write(',\n' + JSON.stringify(strokeBuffer[i]))
     }
 
     snapShot(roomId, ctx.canvas);
-    writeToLog(roomId, logStr)
+    writeStream.close();
   } catch (err) {
     console.log(err)
   }
@@ -115,18 +126,28 @@ async function getSnapshotCtx(roomId) {
 
 }
 
-async function writeToLog(roomId, logStr) {
+async function getLogWriteStream(roomId) {
   const strokeCount = await getAsync(`${roomId}_strokeCount`);
   const batchNum = Math.floor(strokeCount / BATCH_SIZE);
-
-  const fileName = getFileName(roomId, batchNum);
-  fs.writeFile(fileName, logStr, { flag: 'a', mode: 33279 }, (err) => {
-    if (err) throw err;
-  })
+  const fileName = getLogFileName(roomId, batchNum);
+  // TODO: write stream now appending
+  const stream = fs.createWriteStream(fileName, { flag: 'a', mode: 33279 })
+  while (!stream.writable) { }
+  return stream;
 }
 
+// async function writeToLog(roomId, logStr) {
+//   const strokeCount = await getAsync(`${roomId}_strokeCount`);
+//   const batchNum = Math.floor(strokeCount / BATCH_SIZE);
 
-function getFileName(roomId, batchNum) {
+//   const fileName = getLogFileName(roomId, batchNum);
+//   fs.writeFile(fileName, logStr, { flag: 'a', mode: 33279 }, (err) => {
+//     if (err) throw err;
+//   })
+// }
+
+
+function getLogFileName(roomId, batchNum) {
   return __dirname + `/public/logs/${roomId}_${batchNum}.txt`
 }
 
@@ -134,28 +155,34 @@ function draw(ctx, stroke) {
   const cssString = `rgba(${stroke.rgba.join(',')})`;
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
-  if (stroke.x.length === 0) {
-    ctx.lineWidth = 1;
-    ctx.fillStyle = cssString;
-    drawDot(ctx, stroke.x, stroke.y);
-  } else {
-    ctx.lineWidth = stroke.size
-    ctx.strokeStyle = cssString;
-    drawPath(ctx, stroke.x, stroke.y);
-  }
+  ctx.lineWidth = stroke.size
+  ctx.strokeStyle = cssString;
+  drawPath(ctx, stroke);
+
 }
 
-function drawPath(ctx, x, y) {
+
+function drawPath(ctx, { x, y }) {
   ctx.moveTo(x[0], x[0]);
   ctx.beginPath();
   const len = x.length;
-  for (let i = 1; i < len; i++) {
-    ctx.lineTo(x[i], y[i]);
+  console.log(len);
+  if (len === 1) {
+    console.log("Drawing dot", x[0], y[0]);
+    ctx.lineTo(x[0] + 1, y[0] + 1);
+    ctx.lineTo(x[0] + 1, y[0] + 1);
+
+  } else {
+    console.log("Drawing path");
+    for (let i = 1; i < len; i++) {
+      ctx.lineTo(x[i], y[i]);
+    }
   }
   ctx.stroke();
 }
 
-function drawDot(ctx, x, y) {
+function drawDot(ctx, { size, x, y }) {
+  console.log(x, y, size)
   ctx.beginPath();
   ctx.arc(x[0], y[0], size / 2, 0, 2 * Math.PI);
   ctx.fill();
@@ -164,7 +191,7 @@ function drawDot(ctx, x, y) {
 function initializeLog(roomId) {
   return new Promise((resolve, reject) => {
     const initialStr = '[{"rgba":[1,1,1,1], "size": 1, "x": [], "y": []}';
-    const fileName = getFileName(roomId, 0);
+    const fileName = getLogFileName(roomId, 0);
     fs.writeFile(fileName, initialStr, { flags: 'a', mode: 33279 }, (err) => {
       if (err) { reject(err); }
       resolve();
@@ -172,7 +199,7 @@ function initializeLog(roomId) {
   })
 }
 
-function getFileName(roomId, batchNum) {
+function getLogFileName(roomId, batchNum) {
   return __dirname + `/public/logs/${roomId}_${batchNum}.txt`
 }
 
@@ -183,27 +210,30 @@ async function initializeSnapshot(roomId) {
 
 function snapShot(roomId, canvas) {
   return new Promise((resolve, reject) => {
-    const snapshotUrl = getSnapshotUrl(roomId)
-    const out = fs.createWriteStream(
-      snapshotUrl,
-      { mode: 33279, flag: 'w' }
-    )
+    try {
+      const buffer = canvas.toBuffer();
+      // const snapshotUrl = getSnapshotUrl(roomId)
+      const thumbOut = fs.createWriteStream(
+        getThumbUrl(roomId),
+        { mode: 33279, flag: 'w' }
+      )
+      const thumbTransform = sharp(buffer).resize(320, 180);
 
-    const thumbOut = fs.createWriteStream(
-      getThumbUrl(roomId),
-      { mode: 33279, flag: 'w' }
-    )
-    const thumbTransform = sharp().resize(160,90);
-
-    const stream = canvas.createPNGStream()
-    stream.pipe(thumbTransform).pipe(thumbOut)
-    stream.pipe(out)
-    out.on('finish', () => {
-      resolve();
-    });
-    out.on('error', (err) => reject(err));
+      // const stream = canvas.createPNGStream()
+      thumbTransform.pipe(thumbOut)
+      // stream.pipe(canvasOut)
+      fs.writeFile(getSnapshotUrl(roomId), buffer, { mode: 33279, flag: 'w' },
+        (err) => {
+          if (err) throw err;
+          resolve();
+        })
+    } catch (err) {
+      reject(err);
+    }
   })
 }
+
+
 
 function getSnapshotUrl(roomId) {
   return __dirname + `/public/snapshots/${roomId}_snapshot.png`;
