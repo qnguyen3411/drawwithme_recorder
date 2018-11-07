@@ -45,7 +45,6 @@ app.post('/write/:roomId', async function (req, res) {
       }
       buffers[roomId] = []
     }
-
     buffers[roomId].push(data);
     incrAsync(`${roomId}_strokeCount`);
 
@@ -73,12 +72,17 @@ app.post('/end/:roomId', async (req, res) => {
   if (buffers[roomId]) {
     delete buffers[roomId];
   }
-  res.status(200).send("")
-
+  res.status(200).send("");
 })
 
 // INITIALIZE TIMER
 setInterval(unloadBuffers, 20000);
+
+setInterval(resetBuffers, 1000 * 60 * 60);
+
+function resetBuffers() {
+  buffers = {};
+}
 
 function unloadBuffers() {
   Object.entries(buffers).forEach(async ([roomId, buffer]) => {
