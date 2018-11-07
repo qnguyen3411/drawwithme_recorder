@@ -84,7 +84,7 @@ function unloadBuffers() {
   Object.entries(buffers).forEach(async ([roomId, buffer]) => {
     if (buffer.length === 0) { return; }
     await recordBuffer(roomId, buffer);
-    buffer = [];
+    buffers[roomId] = [];
   })
 }
 
