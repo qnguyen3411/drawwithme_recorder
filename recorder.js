@@ -130,21 +130,12 @@ async function getLogWriteStream(roomId) {
   const strokeCount = await getAsync(`${roomId}_strokeCount`);
   const batchNum = Math.floor(strokeCount / BATCH_SIZE);
   const fileName = getLogFileName(roomId, batchNum);
-  // TODO: write stream now appending
-  const stream = fs.createWriteStream(fileName, { flag: 'a', mode: 33279 })
+  // TODO: write stream not appending
+  const stream = fs.createWriteStream(fileName, { flags: 'a', mode: 33279 })
   while (!stream.writable) { }
   return stream;
 }
 
-// async function writeToLog(roomId, logStr) {
-//   const strokeCount = await getAsync(`${roomId}_strokeCount`);
-//   const batchNum = Math.floor(strokeCount / BATCH_SIZE);
-
-//   const fileName = getLogFileName(roomId, batchNum);
-//   fs.writeFile(fileName, logStr, { flag: 'a', mode: 33279 }, (err) => {
-//     if (err) throw err;
-//   })
-// }
 
 
 function getLogFileName(roomId, batchNum) {
@@ -158,34 +149,21 @@ function draw(ctx, stroke) {
   ctx.lineWidth = stroke.size
   ctx.strokeStyle = cssString;
   drawPath(ctx, stroke);
-
 }
-
 
 function drawPath(ctx, { x, y }) {
   ctx.moveTo(x[0], x[0]);
   ctx.beginPath();
   const len = x.length;
-  console.log(len);
-  if (len === 1) {
-    console.log("Drawing dot", x[0], y[0]);
+  if (len === 1) { // Hacky way of making the dots register
     ctx.lineTo(x[0] + 1, y[0] + 1);
     ctx.lineTo(x[0] + 1, y[0] + 1);
-
   } else {
-    console.log("Drawing path");
     for (let i = 1; i < len; i++) {
       ctx.lineTo(x[i], y[i]);
     }
   }
   ctx.stroke();
-}
-
-function drawDot(ctx, { size, x, y }) {
-  console.log(x, y, size)
-  ctx.beginPath();
-  ctx.arc(x[0], y[0], size / 2, 0, 2 * Math.PI);
-  ctx.fill();
 }
 
 function initializeLog(roomId) {
@@ -212,16 +190,12 @@ function snapShot(roomId, canvas) {
   return new Promise((resolve, reject) => {
     try {
       const buffer = canvas.toBuffer();
-      // const snapshotUrl = getSnapshotUrl(roomId)
       const thumbOut = fs.createWriteStream(
         getThumbUrl(roomId),
         { mode: 33279, flag: 'w' }
       )
       const thumbTransform = sharp(buffer).resize(320, 180);
-
-      // const stream = canvas.createPNGStream()
       thumbTransform.pipe(thumbOut)
-      // stream.pipe(canvasOut)
       fs.writeFile(getSnapshotUrl(roomId), buffer, { mode: 33279, flag: 'w' },
         (err) => {
           if (err) throw err;
