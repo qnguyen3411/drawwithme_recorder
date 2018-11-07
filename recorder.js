@@ -56,15 +56,18 @@ app.post('/write/:roomId', async function (req, res) {
 
 app.post('/snapshot/:roomId', async (req, res) => {
   const { roomId } = req.params;
-
-  recordBuffer(roomId, buffers[roomId])
+  if(buffers[roomId]) {
+    recordBuffer(roomId, buffers[roomId])
+  }
   res.status(200).send("")
 })
 
 app.post('/end/:roomId', async (req, res) => {
   const { roomId } = req.params;
 
-  recordBuffer(roomId, buffers[roomId])
+  if(buffers[roomId]) {
+    recordBuffer(roomId, buffers[roomId])
+  }
   setAsync(`${roomId}_status`, 'inactive');
 
   if (buffers[roomId]) {
@@ -123,11 +126,10 @@ async function getLogWriteStream(roomId) {
   return stream;
 }
 
-
-
 function getLogFileName(roomId, batchNum) {
   return __dirname + `/public/logs/${roomId}_${batchNum}.txt`
 }
+
 
 function draw(ctx, stroke) {
   const cssString = `rgba(${stroke.rgba.join(',')})`;
@@ -152,6 +154,7 @@ function drawPath(ctx, { x, y }) {
   }
   ctx.stroke();
 }
+
 
 function initializeLog(roomId) {
   return new Promise((resolve, reject) => {
