@@ -41,7 +41,7 @@ app.post('/write/:roomId', async function (req, res) {
         await setAsync(`${roomId}_strokeCount`, '0');
         setAsync(`${roomId}_status`, 'active');
         initializeLog(roomId);
-        initializeSnapshot(roomId)
+        // initializeSnapshot(roomId)
       }
       buffers[roomId] = []
     }
@@ -94,14 +94,14 @@ function unloadBuffers() {
 
 async function recordBuffer(roomId, strokeBuffer) {
   try {
-    const ctx = await getSnapshotCtx(roomId);
+    // const ctx = await getSnapshotCtx(roomId);
     const writeStream = await getLogWriteStream(roomId);
     for (let i = 0; i < strokeBuffer.length; i++) {
-      draw(ctx, strokeBuffer[i]);
+      // draw(ctx, strokeBuffer[i]);
       writeStream.write(',\n' + JSON.stringify(strokeBuffer[i]))
     }
 
-    snapShot(roomId, ctx.canvas);
+    // snapShot(roomId, ctx.canvas);
     writeStream.close();
   } catch (err) {
     console.log(err)
