@@ -2,15 +2,15 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const redis = require("redis");
 // const morgan = require('morgan');
-const { createCanvas, loadImage } = require('canvas')
+const dataUriToBuffer = require('data-uri-to-buffer');
+
 const { promisify } = require('util');
 const sharp = require('sharp');
 const fs = require('fs');
 
 const app = express();
 
-// app.use(morgan('tiny'))
-app.use(bodyParser.json());
+app.use(bodyParser.json({limit:'50mb'}));
 app.listen(9000, () => {
   console.log("LISTENING")
 });
@@ -41,7 +41,6 @@ app.post('/write/:roomId', async function (req, res) {
         await setAsync(`${roomId}_strokeCount`, '0');
         setAsync(`${roomId}_status`, 'active');
         initializeLog(roomId);
-        // initializeSnapshot(roomId)
       }
       buffers[roomId] = []
     }
@@ -55,16 +54,22 @@ app.post('/write/:roomId', async function (req, res) {
 
 app.post('/snapshot/:roomId', async (req, res) => {
   const { roomId } = req.params;
-  if(buffers[roomId]) {
-    recordBuffer(roomId, buffers[roomId])
-  }
+  const buffer = dataUriToBuffer(req.body.data);
+
+  const thumbOut = fs.createWriteStream(getThumbUrl(roomId), { mode: 33279, flag: 'w' });
+  const thumbTransform = sharp(buffer).resize(320, 180);
+  thumbTransform.pipe(thumbOut);
+  fs.writeFile(getSnapshotUrl(roomId), buffer, { mode: 33279, flag: 'w' },(err) => {
+    if (err) { console.log(err) };
+  });
+
   res.status(200).send("")
 })
 
 app.post('/end/:roomId', async (req, res) => {
   const { roomId } = req.params;
 
-  if(buffers[roomId]) {
+  if (buffers[roomId]) {
     recordBuffer(roomId, buffers[roomId])
   }
   setAsync(`${roomId}_status`, 'inactive');
@@ -78,11 +83,6 @@ app.post('/end/:roomId', async (req, res) => {
 // INITIALIZE TIMER
 setInterval(unloadBuffers, 20000);
 
-setInterval(resetBuffers, 1000 * 60 * 60);
-
-function resetBuffers() {
-  buffers = {};
-}
 
 function unloadBuffers() {
   Object.entries(buffers).forEach(async ([roomId, buffer]) => {
@@ -94,31 +94,14 @@ function unloadBuffers() {
 
 async function recordBuffer(roomId, strokeBuffer) {
   try {
-    // const ctx = await getSnapshotCtx(roomId);
     const writeStream = await getLogWriteStream(roomId);
     for (let i = 0; i < strokeBuffer.length; i++) {
-      // draw(ctx, strokeBuffer[i]);
       writeStream.write(',\n' + JSON.stringify(strokeBuffer[i]))
     }
-
-    // snapShot(roomId, ctx.canvas);
     writeStream.close();
   } catch (err) {
     console.log(err)
   }
-}
-
-async function getSnapshotCtx(roomId) {
-  try {
-    const image = await loadImage(getSnapshotUrl(roomId));
-    const canvas = createCanvas(1820, 1024, 'png');
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(image, 0, 0);
-    return ctx;
-  } catch (err) {
-    throw err
-  }
-
 }
 
 async function getLogWriteStream(roomId) {
@@ -134,32 +117,6 @@ function getLogFileName(roomId, batchNum) {
   return __dirname + `/public/logs/${roomId}_${batchNum}.txt`
 }
 
-
-function draw(ctx, stroke) {
-  const cssString = `rgba(${stroke.rgba.join(',')})`;
-  ctx.lineJoin = 'round';
-  ctx.lineCap = 'round';
-  ctx.lineWidth = stroke.size
-  ctx.strokeStyle = cssString;
-  drawPath(ctx, stroke);
-}
-
-function drawPath(ctx, { x, y }) {
-  ctx.moveTo(x[0], x[0]);
-  ctx.beginPath();
-  const len = x.length;
-  if (len === 1) { // Hacky way of making the dots register
-    ctx.lineTo(x[0] + 1, y[0] + 1);
-    ctx.lineTo(x[0] + 1, y[0] + 1);
-  } else {
-    for (let i = 1; i < len; i++) {
-      ctx.lineTo(x[i], y[i]);
-    }
-  }
-  ctx.stroke();
-}
-
-
 function initializeLog(roomId) {
   return new Promise((resolve, reject) => {
     const initialStr = '[{"rgba":[1,1,1,1], "size": 1, "x": [], "y": []}';
@@ -174,33 +131,6 @@ function initializeLog(roomId) {
 function getLogFileName(roomId, batchNum) {
   return __dirname + `/public/logs/${roomId}_${batchNum}.txt`
 }
-
-async function initializeSnapshot(roomId) {
-  const canvas = createCanvas(1820, 1024, 'png');
-  await snapShot(roomId, canvas)
-}
-
-function snapShot(roomId, canvas) {
-  return new Promise((resolve, reject) => {
-    try {
-      const buffer = canvas.toBuffer();
-      const thumbOut = fs.createWriteStream(
-        getThumbUrl(roomId),
-        { mode: 33279, flag: 'w' }
-      )
-      const thumbTransform = sharp(buffer).resize(320, 180);
-      thumbTransform.pipe(thumbOut)
-      fs.writeFile(getSnapshotUrl(roomId), buffer, { mode: 33279, flag: 'w' },
-        (err) => {
-          if (err) throw err;
-          resolve();
-        })
-    } catch (err) {
-      reject(err);
-    }
-  })
-}
-
 
 
 function getSnapshotUrl(roomId) {
