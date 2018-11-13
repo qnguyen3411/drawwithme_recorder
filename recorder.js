@@ -54,18 +54,18 @@ app.post('/write/:roomId', async function (req, res) {
 app.post('/snapshot/:roomId', async (req, res) => {
   
   res.status(200).send("")
-  // const { roomId } = req.params;
-  // const buffer = Buffer.from(req.body.data.data);
-  // try {
-  //   const thumbOut = fs.createWriteStream(getThumbUrl(roomId), { mode: 33279, flag: 'w' });
-  //   const thumbTransform = sharp(buffer).resize(320, 180);
-  //   thumbTransform.pipe(thumbOut);
-  //   fs.writeFile(getSnapshotUrl(roomId), buffer, { mode: 33279, flag: 'w' }, (err) => {
-  //     if (err) { console.log(err) };
-  //   });
-  // } catch (err) {
-  //   console.log(err)
-  // }
+  const { roomId } = req.params;
+  const buffer = Buffer.from(req.body.data.data);
+  try {
+    const thumbOut = fs.createWriteStream(getThumbUrl(roomId), { mode: 33279, flag: 'w' });
+    const thumbTransform = sharp(buffer).resize(320, 180);
+    thumbTransform.pipe(thumbOut);
+    fs.writeFile(getSnapshotUrl(roomId), buffer, { mode: 33279, flag: 'w' }, (err) => {
+      if (err) { console.log(err) };
+    });
+  } catch (err) {
+    console.log(err)
+  }
 
 })
 
