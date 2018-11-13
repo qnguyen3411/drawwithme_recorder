@@ -2,7 +2,6 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const redis = require("redis");
 // const morgan = require('morgan');
-const dataUriToBuffer = require('data-uri-to-buffer');
 
 const { promisify } = require('util');
 const sharp = require('sharp');
@@ -22,12 +21,14 @@ redisClient.on("error", function (err) {
   console.log("Error " + err);
 });
 
+
 const getAsync = promisify(redisClient.get).bind(redisClient);
 const setAsync = promisify(redisClient.set).bind(redisClient);
 const incrAsync = promisify(redisClient.incr).bind(redisClient);
 
 let buffers = {};
 
+console.log(process.pid)
 app.post('/write/:roomId', async function (req, res) {
   const { data } = req.body;
   const { roomId } = req.params;
@@ -117,10 +118,6 @@ async function getLogWriteStream(roomId) {
   return stream;
 }
 
-function getLogFileName(roomId, batchNum) {
-  return __dirname + `/public/logs/${roomId}_${batchNum}.txt`
-}
-
 function initializeLog(roomId) {
   return new Promise((resolve, reject) => {
     const initialStr = '[{"rgba":[1,1,1,1], "size": 1, "x": [], "y": []}';
@@ -135,7 +132,6 @@ function initializeLog(roomId) {
 function getLogFileName(roomId, batchNum) {
   return __dirname + `/public/logs/${roomId}_${batchNum}.txt`
 }
-
 
 function getSnapshotUrl(roomId) {
   return __dirname + `/public/snapshots/${roomId}_snapshot.png`;
