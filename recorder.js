@@ -32,7 +32,6 @@ console.log(process.pid)
 app.post('/write/:roomId', async function (req, res) {
   const { data } = req.body;
   const { roomId } = req.params;
-
   res.status(200).send("")
   try {
     if (buffers[roomId] === undefined) {
@@ -47,33 +46,32 @@ app.post('/write/:roomId', async function (req, res) {
     }
     buffers[roomId].push(data);
     incrAsync(`${roomId}_strokeCount`);
-
   } catch (err) {
     console.error(err);
   }
 })
 
 app.post('/snapshot/:roomId', async (req, res) => {
-  const { roomId } = req.params;
-  const buffer = Buffer.from(req.body.data.data)
-  try {
-    const thumbOut = fs.createWriteStream(getThumbUrl(roomId), { mode: 33279, flag: 'w' });
-    const thumbTransform = sharp(buffer).resize(320, 180);
-    thumbTransform.pipe(thumbOut);
-    fs.writeFile(getSnapshotUrl(roomId), buffer, { mode: 33279, flag: 'w' }, (err) => {
-      if (err) { console.log(err) };
-    });
-  } catch (err) {
-    console.log(err)
-  }
-
-
+  
   res.status(200).send("")
+  // const { roomId } = req.params;
+  // const buffer = Buffer.from(req.body.data.data);
+  // try {
+  //   const thumbOut = fs.createWriteStream(getThumbUrl(roomId), { mode: 33279, flag: 'w' });
+  //   const thumbTransform = sharp(buffer).resize(320, 180);
+  //   thumbTransform.pipe(thumbOut);
+  //   fs.writeFile(getSnapshotUrl(roomId), buffer, { mode: 33279, flag: 'w' }, (err) => {
+  //     if (err) { console.log(err) };
+  //   });
+  // } catch (err) {
+  //   console.log(err)
+  // }
+
 })
 
 app.post('/end/:roomId', async (req, res) => {
   const { roomId } = req.params;
-
+  res.status(200).send("");
   if (buffers[roomId]) {
     recordBuffer(roomId, buffers[roomId])
   }
@@ -82,12 +80,10 @@ app.post('/end/:roomId', async (req, res) => {
   if (buffers[roomId]) {
     delete buffers[roomId];
   }
-  res.status(200).send("");
 })
 
 // INITIALIZE TIMER
 setInterval(unloadBuffers, 20000);
-
 
 function unloadBuffers() {
   Object.entries(buffers).forEach(async ([roomId, buffer]) => {
