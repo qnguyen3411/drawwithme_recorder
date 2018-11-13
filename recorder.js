@@ -66,7 +66,7 @@ app.post('/snapshot/:roomId', async (req, res) => {
   } catch (err) {
     console.log(err)
   }
-
+  buffer = null;
 })
 
 app.post('/end/:roomId', async (req, res) => {
